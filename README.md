@@ -32,15 +32,17 @@ pip install -r requirements.txt
 ```
 source venv/bin/activate
 ```
-1. Start Jupyter
-  `jupyter notebook`
+1. Start Jupyter and open `perfetto-example.ipynb`
+```
+jupyter notebook
+```
 
-2. Generate a trace from notebook
+2. Follow the notebook to generate a trace:
 
-3. Start a local web server
+3. Start a local web server:
 ```
 cd reports/
-python -m -m http.server
+python -m http.server
 ```
 
 4. Go to http://localhost:8000/example.html
