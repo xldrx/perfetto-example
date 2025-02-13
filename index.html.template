@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    html, body, iframe {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="wait">Loading ...</div>
+  <script>
+    function perfetto_ui_loaded() {
+      fetch_perfetto("{{trace_file}}");
+    }
+    const ORIGIN = "https://ui.perfetto.dev";
+
+    async function getFile(url){
+      try {
+        const resp = await fetch(url, {mode: 'cors'});
+        const blob = await resp.blob();
+        const ds = new DecompressionStream("gzip");
+        const decompressed_stream = blob.stream().pipeThrough(ds);
+        return await new Response(decompressed_stream).blob();
+      } catch (e) {
+        throw e;
+      }
+    }
+
+    async function fetch_perfetto(traceUrl) {
+      const trace_blob = await getFile(traceUrl);
+
+      const arrayBuffer = await trace_blob.arrayBuffer()
+      let wait_div = document.getElementById('wait');
+      wait_div.remove();
+      let frame = document.getElementById('perfetto_iframe');
+      frame.style.display = "block";
+      let win = frame.contentWindow;
+      perfetto_ping_pong(win, arrayBuffer);
+
+    }
+
+    function perfetto_ping_pong(win, arrayBuffer) {
+      const timer = setInterval(() => win.postMessage('PING', ORIGIN), 50);
+
+      const onMessageHandler = (evt) => {
+        if (evt.data !== 'PONG') return;
+
+        // We got a PONG, the UI is ready.
+        window.clearInterval(timer);
+        window.removeEventListener('message', onMessageHandler);
+
+        const url = new URL(location.href);
+
+        win.postMessage({
+          perfetto: {
+            buffer: arrayBuffer,
+            title: 'Example Perfetto',
+            url: url.toString(),
+          }}, ORIGIN);
+        };
+
+        window.addEventListener('message', onMessageHandler);
+      }
+    window.addEventListener("load", perfetto_ui_loaded);
+    </script>
+    <iframe id="perfetto_iframe" src="https://ui.perfetto.dev?mode=embedded&hideSidebar=true" allow="usb; fullscreen; clipboard-write" hidden></iframe>
+
+  </body>
+  </html>
